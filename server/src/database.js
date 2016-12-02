@@ -185,6 +185,7 @@ function addDocument(collectionName, newDoc) {
 }
 module.exports.addDocument = addDocument;
 
+
 /**
  * Deletes a document from an object collection.
  */
