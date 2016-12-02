@@ -44,7 +44,7 @@ app.get('/user/:userid/feed', function(req, res) {
 // URL parameters are stored in req.params
 var userid = req.params.userid;
 // Send response.
-res.send(getFeedData(userid));
+//res.send(getFeedData(userid));
 });
 
 function getUserIdFromToken(authorizationLine) {
@@ -74,7 +74,7 @@ app.get('/user/:userid/feed', function(req, res) {
   var useridNumber = parseInt(userid, 10);
   if (fromUser === useridNumber) {
 
-    res.send(getFeedData(userid));
+    //res.send(getFeedData(userid));
   } else {
 
     res.status(401).end();
