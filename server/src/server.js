@@ -4,7 +4,7 @@ var app = express();
 var database = require('./database');
 var readDocument = database.readDocument;
 var addDocument = database.addDocument;
-var writeDocument = database.readDocument;
+var writeDocument = database.writeDocument;
 
 var StatusUpdateSchema = require('./schemas/statusupdate.json');
 var validate = require('express-jsonschema').validate;
@@ -124,6 +124,113 @@ app.post('/feeditem', validate({ body: StatusUpdateSchema }), function(req, res)
 
       res.status(401).end();
     }
+});
+
+app.post('/resetdb', function(req, res) {
+  console.log("Resetting database...");
+  database.resetDatabase();
+  res.send();
+});
+
+app.put('/feeditem/:feeditemid/content', function(req, res) {
+  var fromUser = getUserIdFromToken(req.get('Authorization'));
+  var feedItemId = req.params.feeditemid;
+  var feedItem = readDocument('feedItems', feedItemId);
+
+  if (fromUser === feedItem.contents.author) {
+    if (typeof(req.body) !== 'string') {
+      res.status(400).end();
+      return;
+    }
+
+    feedItem.contents.contents = req.body;
+    writeDocument('feedItems', feedItem);
+    res.send(getFeedItemSync(feedItemId));
+  } else {
+    res.status(401).end();
+  }
+});
+
+app.delete('/feeditem/:feeditemid', function(req, res) {
+  var fromUser = getUserIdFromToken(req.get('Authorization'));
+  var feedItemId = parseInt(req.params.feeditemid, 10);
+  var feedItem = readDocument('feedItems', feedItemId);
+
+  if (feedItem.contents.author === fromUser) {
+    database.deleteDocument('feedItems', feedItemId);
+    var feeds = database.getCollection('feeds');
+    var feedIds = Object.keys(feeds);
+    feedIds.forEach((feedId) => {
+      var feed = feeds[feedId];
+      var itemIdx = feed.contents.indexOf(feedItemId);
+      if (itemIdx !== -1) {
+        feed.contents.splice(itemIdx, 1);
+        database.writeDocument('feeds', feed);
+      }
+    });
+    res.send();
+  } else {
+    res.status(401).end();
+  }
+});
+
+app.put('/feeditem/:feeditemid/likelist/:userid', function(req, res) {
+  var fromUser = getUserIdFromToken(req.get('Authorization'));
+  var feedItemId = parseInt(req.params.feeditemid, 10);
+  var userId = parseInt(req.params.userid, 10);
+
+  if (fromUser === userId) {
+    var feedItem = readDocument('feedItems', feedItemId);
+
+    if (feedItem.likeCounter.indexOf(userId) === -1) {
+      feedItem.likeCounter.push(userId);
+      writeDocument('feedItems', feedItem);
+    }
+    res.send(feedItem.likeCounter.map((userId) =>
+    readDocument('users', userId)));
+  } else {
+    res.status(401).end();
+  }
+});
+
+app.delete('/feeditem/:feeditemid/likelist/:userid', function(req, res) {
+  var fromUser = getUserIdFromToken(req.get('Authorization'));
+  var feedItemId = parseInt(req.params.feeditemid, 10);
+  var userId = parseInt(req.params.userid, 10);
+
+  if (fromUser === userId) {
+    var feedItem = readDocument('feedItems', feedItemId);
+    var likeIndex = feedItem.likeCounter.indexOf(userId);
+
+    if (likeIndex !== -1) {
+      feedItem.likeCounter.splice(likeIndex, 1);
+      writeDocument('feedItems', feedItem);
+    }
+
+    res.send(feedItem.likeCounter.map((userId) =>
+    readDocument('users', userId)));
+  } else {
+    res.status(401).end();
+  }
+});
+
+app.post('/search', function(req, res) {
+  var fromUser = getUserIdFromToken(req.get('Authorization'));
+  var user = readDocument('users', fromUser);
+
+  if (typeof(req.body) === 'string') {
+    var queryText = req.body.trim().toLowerCase();
+    var feedItemIDs = readDocument('feeds', user.feed).contents;
+
+    res.send(feedItemIDs.filter((feedItemID) => {
+      var feedItem = readDocument('feedItems', feedItemID);
+      return feedItem.contents.contents
+      .toLowerCase()
+      .indexOf(queryText) !== -1;
+    }).map(getFeedItemSync));
+  } else {
+    res.status(400).end();
+  }
 });
 
 app.use(function(err, req, res, next) {

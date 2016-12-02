@@ -184,29 +184,25 @@ export function deleteDocument(collectionName, id) {
 /**
  * Reset our browser-local database.
  */
-export function resetDatabase() {
-  localStorage.setItem('facebook_data', JSON.stringify(initialData));
-  data = JSONClone(initialData);
-}
+export class ResetDatabase extends React.Component {
+  render() {
+    return (
+      <button className="btn btn-default" type="button" onClick={() => {
+          var xhr = new XMLHttpRequest();
+          xhr.open('POST', '/resetdb');
+          xhr.addEventListener('load', function() {
+            window.alert("Database reset! Refreshing the page now...");
+            document.location.reload(false);
+          });
+          xhr.send();
+        }}>Reset Mock DB</button>
+      );
+    }
+  }
 
 /**
  * Returns an entire object collection.
  */
 export function getCollection(collectionName) {
   return JSONClone(data[collectionName]);
-}
-
-/**
- * Reset database button.
- */
-export class ResetDatabase extends React.Component {
-  render() {
-    return (
-      <button className="btn btn-default" type="button" onClick={() => {
-        resetDatabase();
-        window.alert("Database reset! Refreshing the page now...");
-        document.location.reload(false);
-      }}>Reset Mock DB</button>
-    );
-  }
 }
