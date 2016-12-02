@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "properties": {
+    "author": {
+      "type": "integer"
+    },
+    "contents": {
+      "type": "string"
+    },
+    "postDate": {
+      "type": "integer"
+    },
+    "likeCounter": {
+      "type": "array",
+      "items": {}
+    }
+  },
+  "required": [
+    "author",
+    "contents"
+  ]
+}
